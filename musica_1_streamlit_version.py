@@ -320,7 +320,7 @@ def entire_musica(img_o,gammaCorrFlag,L,params):
     img_e = (img_e - np.min(img_e.flatten())) / (np.max(img_e.flatten()) - np.min(img_e.flatten()))  # Normalize the image
     img_enhanced = musica(img_e, L, params)
 
-    img_enhanced = img_enhanced - np.mean(img_enhanced.flatten())  # Why??????????????????
+    img_enhanced = img_enhanced - np.mean(img_enhanced.flatten())  
 
 
 
