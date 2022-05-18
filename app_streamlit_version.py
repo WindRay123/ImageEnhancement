@@ -53,7 +53,7 @@ ref_img = entire_musica(img_o,L,params)
 snr_ref = signaltonoise(ref_img,axis=None)
 
 
-h = st.sidebar.slider('Filter Strength for Denoising', 0, 100, 20)
+h = st.sidebar.slider('Filter Strength for Denoising', 1, 100, 20)
 
 #Denosing increases the SNR
 cv2.fastNlMeansDenoising(img_denoised ,img_denoised,h,7,21) #First parameter is the source image , second parameter is the destination image
