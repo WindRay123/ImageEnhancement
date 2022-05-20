@@ -75,20 +75,5 @@ imageEnhDenoiseLocation .image(img_denoised ,caption = "Denoised Enhanced Image 
 imageFinal.image(img_final, caption = "Final Image (SNR = "+str(signaltonoise(img_denoised,axis = None))+" ) ", use_column_width=True)
 
 
-h = st.sidebar.slider('Filter Strength for Denoising', 1, 100, 20)
 
-#Denosing increases the SNR
-cv2.fastNlMeansDenoising(img_denoised ,img_denoised,h,7,21) #First parameter is the source image , second parameter is the destination image
-
-
-imageOrgLocation = st.empty()
-imageRefLocation = st.empty()
-#imageEnhTwiceLocation = st.empty()
-imageEnhDenoiseLocation = st.empty()
-
-
-imageOrgLocation.image(img_o, caption='Original Image (SNR = '+str(signaltonoise(img_o,axis = None))+" ) ", use_column_width=True)
-imageRefLocation.image(ref_img, caption='Normal MUSICA Enhanced Image (SNR = '+str(signaltonoise(ref_img,axis = None))+" ) ", use_column_width=True)
-#imageEnhTwiceLocation.image(img_twice_musica,caption='MUSICA Twice Image (SNR = '+ str(signaltonoise(img_twice_musica,axis = None))+" ) ", use_column_width=True)
-imageEnhDenoiseLocation .image(img_denoised ,caption = "Denoised Enhanced Image (SNR = "+str(signaltonoise(img_denoised,axis = None))+" ) ", use_column_width=True)
 
