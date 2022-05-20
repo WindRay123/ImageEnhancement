@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt #Imports matplotlib library of Python  to plot i
 from skimage import io, img_as_float #io module of skimage is to enable reading and writing of images
                                     #img_as_float convert  an image to floating point format , with values in [0,1]
 import os    #os module in Python give functions to interact with the operating system
-from musica_1_streamlit_version import *
+from OELP_Final_Functions_double\
+    import *
 from os import system
 import cv2
 import streamlit as st
@@ -29,10 +30,10 @@ a = np.full(L, 1)  # Creates a 1D array of length L and filled with the value 1
 p = np.full(L, 1)  # Creates a 1D array of length L and filled with the value 1
 p = [0.0,0.0,0.0,0.0]
 M = 1.0
-xc = 0.01 * M  # Lower Intensity Limit for Gamma Correction
+xc = 0.01 * M  # Lower Intensity Limit for Gamma Correction #st.sidebar.slider('x_c', 0.0000, 0.0100, 0.0010,step=0.0001)#0.01 * M  # Lower Intensity Limit for Gamma Correction
 params = {'M': M,'a': a,'p': p,'xc': xc}
 
-musica_img = entire_musica(img_o_fn,L,params)
+musica_img = entire_musica(img_o,L,params)#musica_img = entire_musica(img_o_fn,L,params)
 
 musica_ln_inverse = np.exp(musica_img) - 1
 
@@ -45,12 +46,34 @@ img_e = musica_final
 img_e = (img_e*255).astype(np.uint8)
 img_denoised = img_e
 
-
 #Reference SNR Calculation
 p = [0.2,0.2,0.3,1.0]
 params = {'M': M,'a': a,'p': p,'xc': xc}
 ref_img = entire_musica(img_o,L,params)
 snr_ref = signaltonoise(ref_img,axis=None)
+
+h = st.sidebar.slider('Filter Strength for Denoising', 1, 100, 20)
+
+#Denosing increases the SNR
+cv2.fastNlMeansDenoising(img_denoised ,img_denoised,h,7,21) #First parameter is the source image , second parameter is the destination image
+
+img_denoised = (img_denoised - np.min(img_denoised))/np.ptp(img_denoised)
+
+img_final = img_denoised + img_o
+
+img_final = (img_final - np.min(img_final))/np.ptp(img_final)
+
+imageOrgLocation = st.empty()
+imageRefLocation = st.empty()
+#imageEnhTwiceLocation = st.empty()
+imageEnhDenoiseLocation = st.empty()
+imageFinal = st.empty()
+
+imageOrgLocation.image(img_o, caption='Original Image (SNR = '+str(signaltonoise(img_o,axis = None))+" ) ", use_column_width=True)
+imageRefLocation.image(ref_img, caption='Normal MUSICA Enhanced Image (SNR = '+str(signaltonoise(ref_img,axis = None))+" ) ", use_column_width=True)
+#imageEnhTwiceLocation.image(img_twice_musica,caption='MUSICA Twice Image (SNR = '+ str(signaltonoise(img_twice_musica,axis = None))+" ) ", use_column_width=True)
+imageEnhDenoiseLocation .image(img_denoised ,caption = "Denoised Enhanced Image (SNR = "+str(signaltonoise(img_denoised,axis = None))+" ) ", use_column_width=True)
+imageFinal.image(img_final, caption = "Final Image (SNR = "+str(signaltonoise(img_denoised,axis = None))+" ) ", use_column_width=True)
 
 
 h = st.sidebar.slider('Filter Strength for Denoising', 1, 100, 20)
