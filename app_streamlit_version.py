@@ -72,7 +72,7 @@ imageOrgLocation.image(img_o, caption='Original Image (SNR = '+str(signaltonoise
 imageRefLocation.image(ref_img, caption='Normal MUSICA Enhanced Image (SNR = '+str(signaltonoise(ref_img,axis = None))+" ) ", use_column_width=True)
 #imageEnhTwiceLocation.image(img_twice_musica,caption='MUSICA Twice Image (SNR = '+ str(signaltonoise(img_twice_musica,axis = None))+" ) ", use_column_width=True)
 imageEnhDenoiseLocation .image(img_denoised ,caption = "Denoised Enhanced Image (SNR = "+str(signaltonoise(img_denoised,axis = None))+" ) ", use_column_width=True)
-imageFinal.image(img_final, caption = "Final Image (SNR = "+str(signaltonoise(img_denoised,axis = None))+" ) ", use_column_width=True)
+imageFinal.image(img_final, caption = "Final Image (SNR = "+str(signaltonoise(img_final,axis = None))+" ) ", use_column_width=True)
 
 
 
