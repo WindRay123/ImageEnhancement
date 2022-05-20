@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt #Imports matplotlib library of Python  to plot i
 from skimage import io, img_as_float #io module of skimage is to enable reading and writing of images
                                     #img_as_float convert  an image to floating point format , with values in [0,1]
 import os    #os module in Python give functions to interact with the operating system
-from OELP_Final_Functions_double\
-    import *
+from musica_1_streamlit_version.py
 from os import system
 import cv2
 import streamlit as st
