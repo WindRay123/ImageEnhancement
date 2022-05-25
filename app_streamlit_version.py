@@ -28,7 +28,17 @@ L = 7 # Number of Levels for Laplacian Pyramid
 
 a = np.full(L, 1)  # Creates a 1D array of length L and filled with the value 1
 p = np.full(L, 1)  # Creates a 1D array of length L and filled with the value 1
-p = np.zeros((L,1))
+#p = np.zeros((L,1))
+
+p_init = 0.5
+p[0] = st.sidebar.slider('Level 0 ', 0.00, 1.00, p_init)
+p[1] = st.sidebar.slider('Level 1 ', 0.00, 1.00, p_init)
+p[2] = st.sidebar.slider('Level 2 ', 0.00, 1.00, p_init)
+p[3] = st.sidebar.slider('Level 3 ', 0.00, 1.00, p_init)
+p[4] = st.sidebar.slider('Level 4 ', 0.00, 1.00,p_init)
+p[5] = st.sidebar.slider('Level 5 ', 0.00, 1.00, p_init)
+p[6] = st.sidebar.slider('Level 6 ', 0.00, 1.00, p_init)
+
 M = 1.0
 xc = 0.01 * M  # Lower Intensity Limit for Gamma Correction # st.sidebar.slider('x_c', 0.0000, 0.0100, 0.0010,step=0.0001)#0.01 * M  # Lower Intensity Limit for Gamma Correction
 params = {'M': M,'a': a,'p': p,'xc': xc }
@@ -47,7 +57,7 @@ img_e = (img_e*255).astype(np.uint8)
 img_denoised = img_e
 
 #Reference SNR Calculation
-p = np.zeros((L,1))
+#p = np.zeros((L,1))
 params = {'M': M,'a': a,'p': p,'xc': xc}
 ref_img = entire_musica(img_o,L,params)
 snr_ref = signaltonoise(ref_img,axis=None)
