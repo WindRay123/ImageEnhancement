@@ -7,6 +7,7 @@ from skimage import io, img_as_float #io module of skimage is to enable reading 
 import os    #os module in Python give functions to interact with the operating system
 from musica_1_streamlit_version import *
 from os import system
+import math 
 import cv2
 import streamlit as st
 
