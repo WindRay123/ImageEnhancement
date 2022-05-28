@@ -22,7 +22,7 @@ st.sidebar.markdown("**_Dr. Mahesh R. Panicker_**")
 file = st.file_uploader("Please upload an image ")
 img_o = img_as_float(io.imread(file, as_gray=True))
 
-log_or_sigmoid = st.radio("Please select the variant of the algorithm ", 'ln(1+X)','Sigmoid')
+log_or_sigmoid = st.radio('Please select the variant of the algorithm ', ('ln(1+X)','Sigmoid'))
 
 if log_or_sigmoid == 'ln(1+X)':
   img_o_fn = np.log( 1 + img_o)
