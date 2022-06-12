@@ -6,6 +6,9 @@ import copy
 from skimage.transform import pyramid_reduce, pyramid_expand
 from skimage.transform import resize
 import matplotlib.pyplot as plt
+from scipy import ndimage
+from skimage import io, img_as_float,img_as_ubyte
+import cv2
 
 
 def non_linear_gamma_correction(img, params):
@@ -163,6 +166,15 @@ def laplacian_pyramid(img, L):
         tmp = gauss[layer] - tmp
         lp.append(tmp)
     lp.append(gauss[L])
+    """
+    #Store all the laplacian pyramid matrices in files before enhancing the laplacian co-efficients..
+    for layer in range(L):
+        mat = np.matrix(lp[layer])
+        with open('outfile_Laplacian__r'+str(layer)+'.txt', 'wb') as f:
+            for line in mat:
+                np.savetxt(f, line, fmt='%.2f')
+    f.close()
+    """
     return lp, gauss
 
 
@@ -418,3 +430,55 @@ def signaltonoise(a, axis=0, ddof=0): #Took the code from https://github.com/sci
     m = a.mean(axis)
     sd = a.std(axis=axis, ddof=ddof)
     return np.where(sd == 0, 0, m/sd)
+
+def Layer_3(img, L ):
+    """
+    :param img: Input image
+    :param L: Number of Layers of Decomposition
+    :return: The 3rd layer of the Laplacian Pyramid of the needed image
+    """
+    img= (img - np.mean(img.flatten())) / (np.max(img.flatten()) - np.min(img.flatten()))  # Normalize the image
+    img = resize(img, (2000, 2000), anti_aliasing=True)
+    img_resized = resize_image(img)
+    lp, _ = laplacian_pyramid(img_resized, L)
+    return lp[3]
+
+def local_standard_deviation(img , N ):
+  """
+  :param img: Input Image
+  :param N: The size of the neighbourhood we are considering for local standard deviation image calculation
+  :return: Local standard deviation image
+  """
+  kernel = np.ones((N,N))
+  sum = ndimage.convolve(img, kernel, mode = 'constant') # Stores the sum of the elements image  of the neighbourhood
+  img_square = img**2
+  sum_square = ndimage.convolve(img_square,  kernel ,  mode = "constant") #Stores the sum of squares of the elements image of the neighbourhood
+  avg = sum/N #Stores the average of each neighbourhood as an image
+  local_std_image = np.sqrt(np.abs ((1/N)*sum_square + avg**2 - 2*sum*avg/N))
+
+  return local_std_image
+
+def cnr(img , L , N ):
+    """
+
+    :param img: Input Image
+    :param L: The number of Layers of Decomposition
+    :param N: The size of the neighbourhood we are considering for local standard deviation image calculation
+    :return: CNR Image
+    """
+    detail_layer_3 = Layer_3(img, L)
+    local_std_img = local_standard_deviation(detail_layer_3, N)
+    local_std_img_8 = img_as_ubyte(local_std_img)
+    hist = cv2.calcHist([local_std_img_8], [0], None, [256], [0, 256])
+    pos = np.where(hist == max(hist))
+    cnr_image = local_std_img_8 / pos[0]
+    cnr_image = (cnr_image - np.min(cnr_image)) / np.ptp(cnr_image)
+
+    roi = cv2.selectROI("Please Select the Region of Interest ", cnr_image)
+    roi_cropped = cnr_image[int(roi[1]):int(roi[1] + roi[3]), int(roi[0]):int(roi[0] + roi[2])] #Code taken from GeeksforGeeks
+    cnr_roi = roi_cropped.mean()
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    return cnr_image, cnr_roi
