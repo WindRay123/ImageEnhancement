@@ -1,13 +1,13 @@
-
 import datetime
 import numpy as np #Imports numpy package of Python3
 import matplotlib.pyplot as plt #Imports matplotlib library of Python  to plot images..
-from skimage import io, img_as_float #io module of skimage is to enable reading and writing of images
+from skimage import io, img_as_float,img_as_ubyte #io module of skimage is to enable reading and writing of images
                                     #img_as_float convert  an image to floating point format , with values in [0,1]
 import os    #os module in Python give functions to interact with the operating system
 from musica_1_streamlit_version import *
+
 from os import system
-import math 
+import math
 import cv2
 import streamlit as st
 
@@ -22,8 +22,11 @@ st.sidebar.markdown("**_Dr. Mahesh R. Panicker_**")
 
 file = st.file_uploader("Please upload an image ")
 img_o = img_as_float(io.imread(file, as_gray=True))
+img_o_8 = img_as_ubyte(img_o)
 
 log_or_sigmoid = st.radio('Please select the variant of the algorithm ', ('ln(1+X)','Sigmoid'))
+
+hist_show = st.checkbox("Please tick the checkbox to display the corresponding histograms of the images ")
 
 if log_or_sigmoid == 'ln(1+X)':
   img_o_fn = np.log( 1 + img_o)
@@ -64,7 +67,11 @@ if log_or_sigmoid == 'ln(1+X)':
   #p = np.zeros((L,1))
   params = {'M': M,'a': a,'p': p,'xc': xc}
   ref_img = entire_musica(img_o,L,params)
+
+  cnr_image_ref, cnr_roi_ref = cnr(ref_img, L, 9)
+
   snr_ref = signaltonoise(ref_img,axis=None)
+  ref_img_8 = img_as_ubyte(ref_img)
 
   h = st.sidebar.slider('Filter Strength for Denoising', 1, 100, 20)
 
@@ -78,16 +85,51 @@ if log_or_sigmoid == 'ln(1+X)':
   img_final = img_denoised + r*img_o # The final image is a result of weighted addition of the denoised image and the original image
   img_final = (img_final - np.min(img_final))/np.ptp(img_final)
 
+  img_final_8 = img_as_ubyte(img_final)
+
+  N = 9  # Neighbourhood Window Size for Local Standard Deviation Calculation
+  cnr_image, cnr_roi = cnr(img_final, L, N)
+
   imageOrgLocation = st.empty()
+
+  if hist_show:
+    fig1 = plt.figure()
+    plt.hist(img_o_8.ravel(), 256, [0, 256])
+    plt.title("Histogram : Original Image ")
+    plt.xlabel("Intensity ( pixel ) Values ")
+    plt.ylabel("Count of Occurrence")
+    st.pyplot(fig1)
+
   imageRefLocation = st.empty()
+  cnr_imageRefLocation = st.empty()
+
+  if hist_show:
+    fig2 = plt.figure()
+    plt.hist(ref_img_8.ravel(), 256, [0, 256])
+    plt.title("Histogram : Normal MUSICA Image ")
+    plt.xlabel("Intensity ( pixel ) Values ")
+    plt.ylabel("Count of Occurrence")
+    st.pyplot(fig2)
+
   imageEnhDenoiseLocation = st.empty()
   imageFinal = st.empty()
 
+  cnr_image_Location = st.empty()
+
+  if hist_show:
+    fig3 = plt.figure()
+    plt.hist(img_final_8.ravel(), 256, [0, 256])
+    plt.title("Histogram : Final Image ")
+    plt.xlabel("Intensity ( pixel ) Values ")
+    plt.ylabel("Count of Occurrence")
+    st.pyplot(fig3)
+
   imageOrgLocation.image(img_o, caption='Original Image (SNR = '+str(signaltonoise(img_o,axis = None))+" ) ", use_column_width=True)
   imageRefLocation.image(ref_img, caption='Normal MUSICA Enhanced Image (SNR = '+str(signaltonoise(ref_img,axis = None))+" ) ", use_column_width=True)
+  cnr_imageRefLocation.image(cnr_image_ref, caption='CNR Image : Normal MUSICA  (CNR of the chosen ROI = ' + str(cnr_roi_ref) + " ) ",use_column_width=True)
   imageEnhDenoiseLocation .image(img_denoised ,caption = "Denoised Enhanced Image (SNR = "+str(signaltonoise(img_denoised,axis = None))+" ) ", use_column_width=True)
   imageFinal.image(img_final, caption = "Final Image (SNR = "+str(signaltonoise(img_final,axis = None))+" ) ", use_column_width=True)
-
+  cnr_image_Location.image(cnr_image, caption='CNR Image ( CNR of the chosen ROI = ' + str(cnr_roi) + " ) ", use_column_width=True)
 else:
   img_o_fn = 1/(1+np.exp(-img_o))    #np.log( 1 + img_o)
 
@@ -138,9 +180,13 @@ else:
   #Reference SNR Calculation
   params = {'M': M,'a': a,'p': p,'xc': xc}
   ref_img = entire_musica(img_o,L,params)
-  snr_ref = signaltonoise(ref_img,axis=None)
 
-  h = st.sidebar.slider('Filter Strength for Denoising', 1, 100, 20)
+  cnr_image_ref, cnr_roi_ref = cnr(ref_img, L, 9)
+
+  snr_ref = signaltonoise(ref_img,axis=None)
+  ref_img_8 = img_as_ubyte(ref_img)
+
+  h = st.sidebar.slider('Filter Strength for Denoising', 1, 100, 5)
 
   #Denosing increases the SNR
   cv2.fastNlMeansDenoising(img_denoised ,img_denoised,h,7,21) #First parameter is the source image , second parameter is the destination image
@@ -152,10 +198,34 @@ else:
   img_final = img_denoised + r*img_o
   img_final = (img_final - np.min(img_final))/np.ptp(img_final)
 
+  img_final_8 = img_as_ubyte(img_final)
+
+  N = 9  # Neighbourhood Window Size for Local Standard Deviation Calculation
+  cnr_image, cnr_roi = cnr(img_final, L, N)
 
   imageOrgLocation = st.empty()
+
+  if hist_show:
+    fig1 = plt.figure()
+    plt.hist(img_o_8.ravel(), 256, [0, 256])
+    plt.title("Histogram : Original Image ")
+    plt.xlabel("Intensity ( pixel ) Values ")
+    plt.ylabel("Count of Occurrence")
+    st.pyplot(fig1)
+
   sigmoid_orgLocation = st.empty()
   imageRefLocation = st.empty()
+  cnr_imageRefLocation = st.empty()
+
+  if hist_show:
+    fig2 = plt.figure()
+    plt.hist(ref_img_8.ravel(), 256, [0, 256])
+    plt.title("Histogram : Normal MUSICA Image ")
+    plt.xlabel("Intensity ( pixel ) Values ")
+    plt.ylabel("Count of Occurrence")
+    st.pyplot(fig2)
+
+
   musica_imgLocation = st.empty()
   inv_sigmoidLocation = st.empty()
   musica_secondLocation = st.empty()
@@ -163,15 +233,36 @@ else:
   image_denoisedLocation = st.empty()
   image_FinalLocation = st.empty()
 
+  cnr_image_Location = st.empty()
+
+  if hist_show:
+    fig3 = plt.figure()
+    plt.hist(img_final_8.ravel(), 256, [0, 256])
+    plt.title("Histogram : Final Image ")
+    plt.xlabel("Intensity ( pixel ) Values ")
+    plt.ylabel("Count of Occurrence")
+    st.pyplot(fig3)
+
+
   imageOrgLocation.image(img_o, caption='Original Image (SNR = '+str(signaltonoise(img_o,axis = None))+" ) ", use_column_width=True)
   #sigmoid_orgLocation.image(img_o_fn, caption='Sigmoid(Original Image)  (SNR = '+str(signaltonoise(img_o_fn,axis = None))+" ) ", use_column_width=True)
   imageRefLocation.image(ref_img, caption='Normal MUSICA Enhanced Image (SNR = '+str(signaltonoise(ref_img,axis = None))+" ) ", use_column_width=True)
+  cnr_imageRefLocation.image(cnr_image_ref, caption='CNR Image : Normal MUSICA  (CNR of the chosen ROI = ' + str(cnr_roi_ref) + " ) ",use_column_width=True)
   #musica_imgLocation.image(musica_img, caption ='Org --> Sigmoid --> MUSICA (SNR = '+str(signaltonoise(musica_img,axis = None))+" ) ", use_column_width=True)
   #inv_sigmoidLocation.image(inverse_sigmoid, caption ='Org --> Sigmoid --> MUSICA-->Inverse Sigmoid (SNR = '+str(signaltonoise(inverse_sigmoid,axis = None))+" ) ", use_column_width=True)
   #musica_secondLocation.image(musica_second, caption ='Org --> Sigmoid --> MUSICA --> Inverse Sigmoid --> MUSICA (SNR = '+str(signaltonoise(musica_second,axis = None))+" ) ", use_column_width=True)
   #sigmoid_secondLocation.image(sigmoid_second, caption ='Org --> Sigmoid --> MUSICA --> Inverse Sigmoid --> MUSICA --> Sigmoid (SNR = '+str(signaltonoise(sigmoid_second,axis = None))+" ) ", use_column_width=True)
   image_denoisedLocation.image(img_denoised, caption ='Org --> Sigmoid --> MUSICA --> Inverse Sigmoid --> MUSICA --> Sigmoid --> Denoised (SNR = '+str(signaltonoise(img_denoised,axis = None))+" ) ", use_column_width=True)
   image_FinalLocation.image(img_final, caption ='Org --> Sigmoid --> MUSICA --> Inverse Sigmoid --> MUSICA --> Sigmoid --> Denoised --> Add Original  (SNR = '+str(signaltonoise(img_final,axis = None))+" ) ", use_column_width=True)
+  cnr_image_Location.image(cnr_image, caption='CNR Image (CNR of the chosen ROI = ' + str(cnr_roi) + " ) ", use_column_width=True)
 
+st.markdown("<h1 style='text-align: center; color: blue;'>Observations: </h1>",
+            unsafe_allow_html=True)
+st.write("**Normal MUSICA :** CNR = " + str(cnr_roi_ref))
+st.write("**Proposed :** CNR = " + str(cnr_roi))
 
+if cnr_roi>cnr_roi_ref:
+  st.markdown("<h1 style='text-align: center; color: red;'>The proposed method is better than Normal MUSICA</h1>",unsafe_allow_html=True)
+else:
+  st.markdown("<h1 style='text-align: center; color: red;'>Normal MUSICA is better than the proposed method </h1>",unsafe_allow_html=True)
 
