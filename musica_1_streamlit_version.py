@@ -457,7 +457,7 @@ def local_standard_deviation(img , N ):
   local_std_image = np.sqrt(np.abs ((1/N)*sum_square + avg**2 - 2*sum*avg/N))
 
   return local_std_image
-
+"""
 def cnr(img , L , N ):
     """
 
@@ -482,3 +482,4 @@ def cnr(img , L , N ):
     cv2.destroyAllWindows()
 
     return cnr_image, cnr_roi
+"""
