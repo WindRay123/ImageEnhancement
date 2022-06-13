@@ -11,6 +11,32 @@ import math
 import cv2
 import streamlit as st
 
+def cnr(img , L , N ):
+    """
+
+    :param img: Input Image
+    :param L: The number of Layers of Decomposition
+    :param N: The size of the neighbourhood we are considering for local standard deviation image calculation
+    :return: CNR Image
+    """
+    detail_layer_3 = Layer_3(img, L)
+    local_std_img = local_standard_deviation(detail_layer_3, N)
+    local_std_img_8 = img_as_ubyte(local_std_img)
+    hist = cv2.calcHist([local_std_img_8], [0], None, [256], [0, 256])
+    pos = np.where(hist == max(hist))
+    cnr_image = local_std_img_8 / pos[0]
+    cnr_image = (cnr_image - np.min(cnr_image)) / np.ptp(cnr_image)
+
+    roi = cv2.selectROI("Please Select the Region of Interest ", cnr_image)
+    roi_cropped = cnr_image[int(roi[1]):int(roi[1] + roi[3]), int(roi[0]):int(roi[0] + roi[2])] #Code taken from GeeksforGeeks
+    cnr_roi = roi_cropped.mean()
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    return cnr_image, cnr_roi
+
+
 st.markdown("<h1 style='text-align: center; color: red;'>Open Ended Lab Project : Image Enhancement</h1>",
             unsafe_allow_html=True)
 st.sidebar.markdown("By  ")
