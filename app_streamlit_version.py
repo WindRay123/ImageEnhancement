@@ -50,7 +50,11 @@ if log_or_sigmoid == 'ln(1+X)':
 
   musica_ln_inverse = np.exp(musica_img) - 1
 
-  musica_second = entire_musica(musica_ln_inverse,L,params)
+  #musica_second = entire_musica(musica_ln_inverse,L,params)
+  
+  ref_img = entire_musica(img_o,L,params)
+  
+  musica_second = musica_ln_inverse + ref_img
 
   musica_final = np.log(1 + musica_second)
 
