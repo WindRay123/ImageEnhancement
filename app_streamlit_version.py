@@ -1,132 +1,174 @@
-# Script for running MUSICA algorithm on a grayscale image:
-# Written by Lafith Mattara on 2021-06-05 , Modified by Mahesh on 2021-08-10 and small modifications by Asif
-import cv2
 import datetime
-import numpy as np  # Imports numpy package of Python3
-import matplotlib.pyplot as plt  # Imports matplotlib library of Python  to plot images..
-from skimage import io, img_as_float  # io module of skimage is to enable reading and writing of images
-# img_as_float convert  an image to floating point format , with values in [0,1]
-import os  # os module in Python give functions to interact with the operating system
-# import time #time module in Python gives various time related functionalities
-from musica_1_streamlit_version import *  # This statement imports the musica.py module created previously which contains imporlogt functions for image proceslogg
+import numpy as np #Imports numpy package of Python3
+import matplotlib.pyplot as plt #Imports matplotlib library of Python  to plot images..
+from skimage import io, img_as_float #io module of skimage is to enable reading and writing of images
+                                    #img_as_float convert  an image to floating point format , with values in [0,1]
+import os    #os module in Python give functions to interact with the operating system
+from musica_1_streamlit_version import *
+from os import system
+import math 
+import cv2
 import streamlit as st
 
-# Streamlit
-
-# %% User Inputs
-st.markdown("<h1 style='text-align: center; color: black;'>Interactive Image Contrast Enhancement</h1>",
+st.markdown("<h1 style='text-align: center; color: red;'>Open Ended Lab Project : Image Enhancement</h1>",
             unsafe_allow_html=True)
-st.sidebar.markdown("Contact: Dr. Mahesh R Panicker (mahesh@iitpkd.ac.in) ")
-st.sidebar.markdown("(c) Center for Computational Imaging, IIT Palakkad")
+st.sidebar.markdown("By  ")
+st.sidebar.markdown("**_Asif M.S._**")
+st.sidebar.markdown("121901007")
 
-L = st.sidebar.slider('Number of levels', 1, 7, 4)
-a = np.full(L, 1)
-gammaCorrFlag = st.sidebar.checkbox('Enable Gamma Correction', value=False)
-if gammaCorrFlag:
-    xc1 = st.sidebar.slider('Lower Intensity Limit for Gamma Correction', 0.0, 3.0, 1.0)
-    params1 = {
-        'M': 1,
-        'a': 1,
-        'p': 1,
-        'xc': xc1
-    }
-xc = float(st.sidebar.text_input('Lower Intensity Limit for Laplacian Pyramid Correction', 0.01))
+st.sidebar.markdown("Under the Supervision of :")
+st.sidebar.markdown("**_Dr. Mahesh R. Panicker_**")
 
-p = np.zeros((L, 1))
-for ii in range(L):
-    if ii == 0:
-        p[ii] = st.sidebar.slider('p-value for level-' + str(ii), 0.0, 1.0, 0.5)
-    else:
-        p[ii] = st.sidebar.slider('p-value for level-' + str(ii), 0.0, 1.0, 1.0)
-
-params = {
-    'M': 1,
-    'a': a,
-    'p': p,
-    'xc': xc
-}
-
-file = st.file_uploader("Please put the images here")
-
-#############################################################################################
-begin_time = datetime.datetime.now()  # To store the current programing starting time
-
-
-
+file = st.file_uploader("Please upload an image ")
 img_o = img_as_float(io.imread(file, as_gray=True))
 
+log_or_sigmoid = st.radio('Please select the variant of the algorithm ', ('ln(1+X)','Sigmoid'))
+
+if log_or_sigmoid == 'ln(1+X)':
+  img_o_fn = np.log( 1 + img_o)
+
+  L = 7 # Number of Levels for Laplacian Pyramid
+
+  a = np.full(L, 1)  # Creates a 1D array of length L and filled with the value 1
+  p = np.full(L, 1)  # Creates a 1D array of length L and filled with the value 1
+  #p = np.zeros((L,1))
+
+  p_init = 0.5
+  p[0] = st.sidebar.slider('Level 0 ', 0.00, 1.00, p_init)
+  p[1] = st.sidebar.slider('Level 1 ', 0.00, 1.00, p_init)
+  p[2] = st.sidebar.slider('Level 2 ', 0.00, 1.00, p_init)
+  p[3] = st.sidebar.slider('Level 3 ', 0.00, 1.00, p_init)
+  p[4] = st.sidebar.slider('Level 4 ', 0.00, 1.00,p_init)
+  p[5] = st.sidebar.slider('Level 5 ', 0.00, 1.00, p_init)
+  p[6] = st.sidebar.slider('Level 6 ', 0.00, 1.00, p_init)
+
+  M = 1.0
+  xc = 0.01 * M  # Lower Intensity Limit for Gamma Correction # st.sidebar.slider('x_c', 0.0000, 0.0100, 0.0010,step=0.0001)#0.01 * M  # Lower Intensity Limit for Gamma Correction
+  params = {'M': M,'a': a,'p': p,'xc': xc }
+
+  musica_img = entire_musica(img_o_fn,L,params)
+
+  musica_ln_inverse = np.exp(musica_img) - 1
+
+  musica_second = entire_musica(musica_ln_inverse,L,params)
+
+  musica_final = np.log(1 + musica_second)
+
+  img_e = musica_final
+
+  img_e = (img_e*255).astype(np.uint8)
+  img_denoised = img_e
+
+  #Reference SNR Calculation
+  #p = np.zeros((L,1))
+  params = {'M': M,'a': a,'p': p,'xc': xc}
+  ref_img = entire_musica(img_o,L,params)
+  snr_ref = signaltonoise(ref_img,axis=None)
+
+  h = st.sidebar.slider('Filter Strength for Denoising', 1, 100, 20)
+
+  #Denosing increases the SNR
+  cv2.fastNlMeansDenoising(img_denoised ,img_denoised,h,7,21) #First parameter is the source image , second parameter is the destination image
+
+  img_denoised = (img_denoised - np.min(img_denoised))/np.ptp(img_denoised)
+
+  r =  st.sidebar.slider('r', 0.0, 1.0, 0.0)
+
+  img_final = img_denoised + r*img_o # The final image is a result of weighted addition of the denoised image and the original image
+  img_final = (img_final - np.min(img_final))/np.ptp(img_final)
+
+  imageOrgLocation = st.empty()
+  imageRefLocation = st.empty()
+  imageEnhDenoiseLocation = st.empty()
+  imageFinal = st.empty()
+
+  imageOrgLocation.image(img_o, caption='Original Image (SNR = '+str(signaltonoise(img_o,axis = None))+" ) ", use_column_width=True)
+  imageRefLocation.image(ref_img, caption='Normal MUSICA Enhanced Image (SNR = '+str(signaltonoise(ref_img,axis = None))+" ) ", use_column_width=True)
+  imageEnhDenoiseLocation .image(img_denoised ,caption = "Denoised Enhanced Image (SNR = "+str(signaltonoise(img_denoised,axis = None))+" ) ", use_column_width=True)
+  imageFinal.image(img_final, caption = "Final Image (SNR = "+str(signaltonoise(img_final,axis = None))+" ) ", use_column_width=True)
+
+else:
+  img_o_fn = 1/(1+np.exp(-img_o))    #np.log( 1 + img_o)
+
+  L = 7 #st.sidebar.slider('Number of Levels Of Decomposition', 4, 10, 7) #4 # Number of Levels for Laplacian Pyramid
+
+  a = np.full(L, 1)  # Creates a 1D array of length L and filled with the value 1
+  p = np.full(L, 1)  # Creates a 1D array of length L and filled with the value 1
+
+  p_init = 0.5
+  p[0] = st.sidebar.slider('Level 0 ', 0.00, 1.00, p_init)
+  p[1] = st.sidebar.slider('Level 1 ', 0.00, 1.00, p_init)
+  p[2] = st.sidebar.slider('Level 2 ', 0.00, 1.00, p_init)
+  p[3] = st.sidebar.slider('Level 3 ', 0.00, 1.00, p_init)
+  p[4] = st.sidebar.slider('Level 4 ', 0.00, 1.00,p_init)
+  p[5] = st.sidebar.slider('Level 5 ', 0.00, 1.00, p_init)
+  p[6] = st.sidebar.slider('Level 6 ', 0.00, 1.00, p_init)
+
+  M = 1.0
+  xc = 0.01 * M  # Lower Intensity Limit for Gamma Correction # st.sidebar.slider('x_c', 0.0000, 0.0100, 0.0010,step=0.0001)#0.01 * M  # Lower Intensity Limit for Gamma Correction
+  params = {'M': M,'a': a,'p': p,'xc': xc }
+
+  musica_img = entire_musica(img_o_fn,L,params)
+
+  inverse_sigmoid = np.zeros(musica_img.shape)
+
+  for i in range(musica_img.shape[0]):
+    for j in range(musica_img.shape[1]):
+        if musica_img[i][j] != 0 and musica_img[i][j] != 1:
+            inverse_sigmoid[i][j] = math.log(musica_img[i][j]/(1 - musica_img[i][j]))
 
 
-img_o_log = np.log(1 + img_o)
 
-img_enhanced = entire_musica(img_o_log , gammaCorrFlag, L, params)  # Gives the normal MUSICA image
+  #pos = np.where(musica_img!=0)
 
-img_inv = np.exp(img_enhanced) - 1
+  #inverse_sigmoid = np.log(np.divide(musica_img[pos],1-musica_img[pos],where=musica_img[pos]!=1))
 
-img_twice_musica = entire_musica(img_inv, gammaCorrFlag, L, params)
+  inverse_sigmoid = (inverse_sigmoid - np.min(inverse_sigmoid))/np.ptp(inverse_sigmoid)
 
-img_log_2 = np.log (1 + img_twice_musica )
+  musica_second = entire_musica(inverse_sigmoid,L,params)
 
-img_e = img_log_2
+  sigmoid_second = 1/(1+np.exp(-musica_second))
 
+  img_e = sigmoid_second
 
+  img_e = (img_e*255).astype(np.uint8)
+  img_denoised = img_e
 
-"""
-#For Image 2
-img_e = (img_e*255).astype(np.uint8)
-img_gaussian = img_e
-img_gaussian = cv2.fastNlMeansDenoising(img_e ,img_gaussian,30,7,21)
-"""
-#For Image 1
-img_e = (img_e*255).astype(np.uint8)
+  #Reference SNR Calculation
+  params = {'M': M,'a': a,'p': p,'xc': xc}
+  ref_img = entire_musica(img_o,L,params)
+  snr_ref = signaltonoise(ref_img,axis=None)
 
-img_e = (img_e*255).astype(np.uint8)
+  h = st.sidebar.slider('Filter Strength for Denoising', 1, 100, 20)
 
-img_gaussian = img_e
-img_gaussian = cv2.fastNlMeansDenoising(img_e ,img_gaussian,30,7,21)
+  #Denosing increases the SNR
+  cv2.fastNlMeansDenoising(img_denoised ,img_denoised,h,7,21) #First parameter is the source image , second parameter is the destination image
 
-#img_e = (img_e*255).astype(np.uint8)
-#img_gaussian = img_e
-img_gaussian = cv2.fastNlMeansDenoising(img_e ,img_gaussian,30,7,21)
+  img_denoised = (img_denoised - np.min(img_denoised))/np.ptp(img_denoised)
 
-#img_enhanced_inv = np.exp(img_enhanced) - 1
+  r =  st.sidebar.slider('r', 0.0, 1.0, 0.0)
 
-#img_enhanced_inv = (img_enhanced_inv*255).astype(np.uint8)
-
-#img_musica_2 =  entire_musica(img_enhanced_inv, gammaCorrFlag, L, params)
+  img_final = img_denoised + r*img_o
+  img_final = (img_final - np.min(img_final))/np.ptp(img_final)
 
 
-#
-#img_enhanced_denoised = img_enhanced#np.zeros((img_enhanced.shape[0],img_enhanced.shape[1]))
+  imageOrgLocation = st.empty()
+  sigmoid_orgLocation = st.empty()
+  imageRefLocation = st.empty()
+  musica_imgLocation = st.empty()
+  inv_sigmoidLocation = st.empty()
+  musica_secondLocation = st.empty()
+  sigmoid_secondLocation = st.empty()
+  image_denoisedLocation = st.empty()
+  image_FinalLocation = st.empty()
 
-#img_enhanced_denoised  = np.log(1 +img_enhanced)#cv2.fastNlMeansDenoising(img_enhanced,img_enhanced_denoised,30,7,21)#h= 30.0,templateWindowSize= 7,searchWindowSize=21
+  imageOrgLocation.image(img_o, caption='Original Image (SNR = '+str(signaltonoise(img_o,axis = None))+" ) ", use_column_width=True)
+  #sigmoid_orgLocation.image(img_o_fn, caption='Sigmoid(Original Image)  (SNR = '+str(signaltonoise(img_o_fn,axis = None))+" ) ", use_column_width=True)
+  imageRefLocation.image(ref_img, caption='Normal MUSICA Enhanced Image (SNR = '+str(signaltonoise(ref_img,axis = None))+" ) ", use_column_width=True)
+  #musica_imgLocation.image(musica_img, caption ='Org --> Sigmoid --> MUSICA (SNR = '+str(signaltonoise(musica_img,axis = None))+" ) ", use_column_width=True)
+  #inv_sigmoidLocation.image(inverse_sigmoid, caption ='Org --> Sigmoid --> MUSICA-->Inverse Sigmoid (SNR = '+str(signaltonoise(inverse_sigmoid,axis = None))+" ) ", use_column_width=True)
+  #musica_secondLocation.image(musica_second, caption ='Org --> Sigmoid --> MUSICA --> Inverse Sigmoid --> MUSICA (SNR = '+str(signaltonoise(musica_second,axis = None))+" ) ", use_column_width=True)
+  #sigmoid_secondLocation.image(sigmoid_second, caption ='Org --> Sigmoid --> MUSICA --> Inverse Sigmoid --> MUSICA --> Sigmoid (SNR = '+str(signaltonoise(sigmoid_second,axis = None))+" ) ", use_column_width=True)
+  image_denoisedLocation.image(img_denoised, caption ='Org --> Sigmoid --> MUSICA --> Inverse Sigmoid --> MUSICA --> Sigmoid --> Denoised (SNR = '+str(signaltonoise(img_denoised,axis = None))+" ) ", use_column_width=True)
+  image_FinalLocation.image(img_final, caption ='Org --> Sigmoid --> MUSICA --> Inverse Sigmoid --> MUSICA --> Sigmoid --> Denoised --> Add Original  (SNR = '+str(signaltonoise(img_final,axis = None))+" ) ", use_column_width=True)
 
-
-
-imageOrgLocation = st.empty()
-imageEnhLocation = st.empty()
-imageEnhTwiceLocation = st.empty()
-imageEnhDenoiseLocation = st.empty()
-
-
-imageOrgLocation.image(img_o, caption='Original Image (SNR = '+str(signaltonoise(img_o,axis = None))+" ) ", use_column_width=True)
-imageEnhLocation.image(img_enhanced, caption='Enhanced Image (SNR = '+str(signaltonoise(img_enhanced,axis = None))+" ) ", use_column_width=True)
-imageEnhTwiceLocation.image(img_twice_musica,caption='MUSICA Twice Image (SNR = '+ str(signaltonoise(img_twice_musica,axis = None))+" ) ", use_column_width=True)
-imageEnhDenoiseLocation .image(img_gaussian ,caption = "Denoised Enhanced Image SNR = "+str(signaltonoise(img_gaussian,axis = None))+" ) ", use_column_width=True)
-
-
-
-print(datetime.datetime.now() - begin_time)
-
-# Histogram Plotting...
-
-#plt.figure()
-#plt.hist(img_o.ravel(), 256, [0, 1],label = "Original Image");
-#plt.title("Original Image")
-#plt.figure()
-#plt.hist(img_enhanced.ravel(), 256, [0, 1],label = "Normal MUSICA");
-#plt.title("Normal MUSICA")
-#plt.figure()
-#plt.hist(img_enhanced_log_before.ravel(), 256, [0, 1],label = "Log Before MUSICA ");
-#plt.title("Log Before MUSICA ")
-#plt.show()
