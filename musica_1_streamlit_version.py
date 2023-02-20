@@ -1,5 +1,5 @@
 # Script for running MUSICA algorithm on a grayscale image:
-# Written by Lafith Mattara on 2021-06-05 and Modified by Mahesh on 2021-08-10 and small modifications by Asif
+# Written by Lafith Mattara on 2021-06-05 and Modified by Mahesh on 2021-08-10 and Asif
 
 import numpy as np
 import copy
